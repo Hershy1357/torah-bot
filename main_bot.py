@@ -14,20 +14,20 @@ WELCOME = """✨ *ברוך הבא!* ✨
 
 def books_reply_kb():
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    kb.add(*[telebot.types.KeyboardButton(f"📖 {b}") for b in reversed(BOOKS_ORDER)])
+    kb.add(*[telebot.types.KeyboardButton(f"📖 {b}") for b in BOOKS_ORDER])
     kb.add(telebot.types.KeyboardButton("🏠 היים"))
     return kb
 
 def parsha_reply_kb(book):
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
     parshiyot = list(PARSHA_DATA[book].keys())
-    kb.add(*[telebot.types.KeyboardButton(f"📜 {p}") for p in reversed(parshiyot)])
+    kb.add(*[telebot.types.KeyboardButton(f"📜 {p}") for p in parshiyot])
     kb.add(telebot.types.KeyboardButton("🔙 צוריק צו חומשים"))
     return kb
 
 def days_reply_kb(book, parsha):
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-    kb.add(*[telebot.types.KeyboardButton(f"🎵 {DAY_NAMES[d]}") for d in reversed(range(1,8))])
+    kb.add(*[telebot.types.KeyboardButton(f"🎵 {DAY_NAMES[d]}") for d in range(1,8)])
     if PARSHA_DATA[book][parsha].get("_pdf","TODO") != "TODO":
         kb.add(telebot.types.KeyboardButton("📄 PDF"))
     kb.add(telebot.types.KeyboardButton("🔙 צוריק צו פרשיות"))
