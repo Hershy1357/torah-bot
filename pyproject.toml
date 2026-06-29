@@ -1,0 +1,12 @@
+[tool.poetry]
+name = "torah-bot"
+version = "1.0.0"
+description = "Torah Weekly Telegram Bot"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+python-telegram-bot = "20.7"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
