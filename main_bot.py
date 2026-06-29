@@ -12,25 +12,31 @@ WELCOME = """✨ *ברוך הבא!* ✨
 
 קלויב א חומש און הייב אן! 👇"""
 
-def books_reply_kb():
-    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
-    kb.add(*[telebot.types.KeyboardButton(b) for b in BOOKS_ORDER])
-    kb.add(telebot.types.KeyboardButton("🏠 היים"))
+def books_kb():
+    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row("ויקרא","שמות","בראשית")
+    kb.row("דברים","במדבר")
+    kb.row("🏠 היים")
     return kb
 
-def parsha_reply_kb(book):
-    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3)
+def parsha_kb(book):
+    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     parshiyot = list(PARSHA_DATA[book].keys())
-    kb.add(*[telebot.types.KeyboardButton(p) for p in parshiyot])
-    kb.add(telebot.types.KeyboardButton("🔙 צוריק צו חומשים"))
+    # split into rows of 3, each row reversed
+    for i in range(0, len(parshiyot), 3):
+        row = parshiyot[i:i+3]
+        kb.row(*reversed(row))
+    kb.row("🔙 צוריק צו חומשים")
     return kb
 
-def days_reply_kb(book, parsha):
-    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=4)
-    kb.add(*[telebot.types.KeyboardButton(DAY_NAMES[d]) for d in range(1,8)])
+def days_kb(book, parsha):
+    kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row("שלישי","שני","ראשון")
+    kb.row("שישי","חמישי","רביעי")
+    kb.row("שביעי")
     if PARSHA_DATA[book][parsha].get("_pdf","TODO") != "TODO":
-        kb.add(telebot.types.KeyboardButton("📄 PDF"))
-    kb.add(telebot.types.KeyboardButton("🔙 צוריק צו פרשיות"))
+        kb.row("📄 PDF")
+    kb.row("🔙 צוריק צו פרשיות")
     return kb
 
 user_state = {}
@@ -38,32 +44,31 @@ user_state = {}
 @bot.message_handler(commands=['start'])
 def start(msg):
     user_state[msg.chat.id] = {}
-    bot.send_message(msg.chat.id, WELCOME, parse_mode="Markdown", reply_markup=books_reply_kb())
+    bot.send_message(msg.chat.id, WELCOME, parse_mode="Markdown", reply_markup=books_kb())
 
 @bot.message_handler(func=lambda m: m.text == "🏠 היים")
 def go_home(msg):
     user_state[msg.chat.id] = {}
-    bot.send_message(msg.chat.id, "📚 *קלויב א חומש*", parse_mode="Markdown", reply_markup=books_reply_kb())
+    bot.send_message(msg.chat.id, "📚 *קלויב א חומש*", parse_mode="Markdown", reply_markup=books_kb())
 
 @bot.message_handler(func=lambda m: m.text == "🔙 צוריק צו חומשים")
-def back_to_books(msg):
+def back_books(msg):
     user_state[msg.chat.id] = {}
-    bot.send_message(msg.chat.id, "📚 *קלויב א חומש*", parse_mode="Markdown", reply_markup=books_reply_kb())
+    bot.send_message(msg.chat.id, "📚 *קלויב א חומש*", parse_mode="Markdown", reply_markup=books_kb())
 
 @bot.message_handler(func=lambda m: m.text == "🔙 צוריק צו פרשיות")
-def back_to_parsha(msg):
+def back_parsha(msg):
     state = user_state.get(msg.chat.id, {})
     book = state.get("book")
     if book:
-        bot.send_message(msg.chat.id, f"📖 *{book}* – קלויב א פרשה", parse_mode="Markdown", reply_markup=parsha_reply_kb(book))
+        bot.send_message(msg.chat.id, f"📖 *{book}* – קלויב א פרשה", parse_mode="Markdown", reply_markup=parsha_kb(book))
     else:
         go_home(msg)
 
 @bot.message_handler(func=lambda m: m.text and m.text in BOOKS_ORDER)
 def pick_book(msg):
-    book = msg.text
-    user_state[msg.chat.id] = {"book": book}
-    bot.send_message(msg.chat.id, f"📖 *{book}* – קלויב א פרשה", parse_mode="Markdown", reply_markup=parsha_reply_kb(book))
+    user_state[msg.chat.id] = {"book": msg.text}
+    bot.send_message(msg.chat.id, f"📖 *{msg.text}* – קלויב א פרשה", parse_mode="Markdown", reply_markup=parsha_kb(msg.text))
 
 @bot.message_handler(func=lambda m: m.text and any(m.text in PARSHA_DATA[b] for b in BOOKS_ORDER))
 def pick_parsha(msg):
@@ -76,7 +81,7 @@ def pick_parsha(msg):
                 book = b
                 break
     user_state[msg.chat.id] = {"book": book, "parsha": parsha}
-    bot.send_message(msg.chat.id, f"📜 *פרשת {parsha}* – קלויב א טאג", parse_mode="Markdown", reply_markup=days_reply_kb(book, parsha))
+    bot.send_message(msg.chat.id, f"📜 *פרשת {parsha}* – קלויב א טאג", parse_mode="Markdown", reply_markup=days_kb(book, parsha))
 
 @bot.message_handler(func=lambda m: m.text and m.text in DAY_NAMES.values())
 def pick_day(msg):
@@ -84,18 +89,17 @@ def pick_day(msg):
     book = state.get("book")
     parsha = state.get("parsha")
     if not book or not parsha:
-        bot.send_message(msg.chat.id, "בבקשה קלויב ערשט א פרשה", reply_markup=books_reply_kb())
+        bot.send_message(msg.chat.id, "קלויב ערשט א פרשה", reply_markup=books_kb())
         return
-    day_name = msg.text
-    day_num = next((k for k, v in DAY_NAMES.items() if v == day_name), None)
+    day_num = next((k for k, v in DAY_NAMES.items() if v == msg.text), None)
     fid = PARSHA_DATA[book][parsha].get(day_num, "TODO")
     if fid == "TODO":
         bot.send_message(msg.chat.id, "⏳ נאך נישט אריינגעלייגט")
     elif isinstance(fid, list):
         for i, f in enumerate(fid):
-            bot.send_audio(msg.chat.id, f, caption=f"🎵 פרשת *{parsha}* – {day_name} חלק {i+1}", parse_mode="Markdown")
+            bot.send_audio(msg.chat.id, f, caption=f"🎵 פרשת *{parsha}* – {msg.text} חלק {i+1}", parse_mode="Markdown")
     else:
-        bot.send_audio(msg.chat.id, fid, caption=f"🎵 פרשת *{parsha}* – {day_name}", parse_mode="Markdown")
+        bot.send_audio(msg.chat.id, fid, caption=f"🎵 פרשת *{parsha}* – {msg.text}", parse_mode="Markdown")
 
 @bot.message_handler(func=lambda m: m.text == "📄 PDF")
 def pick_pdf(msg):
