@@ -12,6 +12,8 @@ WELCOME = """✨ *ברוך הבא!* ✨
 
 קלויב א חומש און הייב אן! 👇"""
 
+P = '📜 '  # prefix for parsha buttons
+
 def books_kb():
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     kb.row("ויקרא","שמות","בראשית")
@@ -22,10 +24,9 @@ def books_kb():
 def parsha_kb(book):
     kb = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     parshiyot = list(PARSHA_DATA[book].keys())
-    # split into rows of 3, each row reversed
     for i in range(0, len(parshiyot), 3):
         row = parshiyot[i:i+3]
-        kb.row(*reversed(row))
+        kb.row(*[P+p for p in reversed(row)])
     kb.row("🔙 צוריק צו חומשים")
     return kb
 
@@ -70,9 +71,9 @@ def pick_book(msg):
     user_state[msg.chat.id] = {"book": msg.text}
     bot.send_message(msg.chat.id, f"📖 *{msg.text}* – קלויב א פרשה", parse_mode="Markdown", reply_markup=parsha_kb(msg.text))
 
-@bot.message_handler(func=lambda m: m.text and any(m.text in PARSHA_DATA[b] for b in BOOKS_ORDER))
+@bot.message_handler(func=lambda m: m.text and m.text.startswith(P))
 def pick_parsha(msg):
-    parsha = msg.text
+    parsha = msg.text[len(P):]
     state = user_state.get(msg.chat.id, {})
     book = state.get("book")
     if not book:
